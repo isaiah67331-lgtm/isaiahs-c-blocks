@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ISAIAHS C beta</title>
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Inter', 'Segoe UI', sans-serif; background: #1a1b26; color: #a9b1d6; }
+    .app-container { display: flex; flex-direction: column; height: 100vh; }
+    .header { height: 60px; background: #16161e; color: #c0caf5; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid #3b4261; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; }
+    .main-content { display: flex; flex: 1; overflow: hidden; }
+    #blocklyArea { flex: 1; position: relative; }
+    #blocklyDiv { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+    #codePane { width: 400px; background: #1a1b26; border-left: 1px solid #3b4261; display: flex; flex-direction: column; }
+    .pane-title { background: #24283b; color: #7aa2f7; padding: 10px 15px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #3b4261; }
+    #codeOutput { flex: 1; margin: 0; color: #9ece6a; padding: 20px; font-family: 'Fira Code', monospace; white-space: pre; overflow: auto; font-size: 13px; line-height: 1.6; }
+    #consolePane { height: 200px; background: #16161e; border-top: 1px solid #3b4261; padding: 15px; font-family: 'Fira Code', monospace; font-size: 12px; color: #a9b1d6; overflow-y: auto; position: relative; line-height: 1.5; }
+    .btn-run { background: linear-gradient(135deg, #7aa2f7, #bb9af7); color: #1a1b26; border: none; padding: 10px 28px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; transition: all 0.3s; box-shadow: 0 0 15px rgba(122, 162, 247, 0.2); text-shadow: 0 0 5px rgba(0,0,0,0.2); }
+    .btn-run:hover { transform: translateY(-1px); box-shadow: 0 0 25px rgba(187, 154, 247, 0.4); filter: brightness(1.1); }
+    .btn-header { background: #24283b; color: #7aa2f7; border: 1px solid #3b4261; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px; transition: 0.2s; }
+    .btn-header:hover { background: #3b4261; border-color: #7aa2f7; }
+    .btn-clear { background: transparent; color: #565f89; border: 1px solid #3b4261; padding: 5px 10px; font-size: 10px; border-radius: 3px; cursor: pointer; margin-left: 10px; }
+    .btn-clear:hover { border-color: #7aa2f7; color: #7aa2f7; }
+    h1 { font-size: 1.2rem; font-weight: 800; color: #7aa2f7; letter-spacing: -0.5px; }
+    .status-dot { height: 8px; width: 8px; background-color: #9ece6a; border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 8px #9ece6a; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    /* Tutorial Modal Styles */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
+    .modal-content { background: #1a1b26; margin: 5% auto; padding: 30px; border: 1px solid #3b4261; width: 70%; max-height: 80%; overflow-y: auto; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3b4261; margin-bottom: 20px; padding-bottom: 10px; }
+    .modal-close { color: #565f89; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .modal-close:hover { color: #f7768e; }
+    .tutorial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .tutorial-card { background: #24283b; border: 1px solid #414868; padding: 20px; border-radius: 8px; transition: 0.3s; cursor: pointer; }
+    .tutorial-card:hover { border-color: #7aa2f7; transform: translateY(-3px); background: #2f3549; }
+    .tutorial-card h3 { margin-top: 0; color: #7aa2f7; }
+    .tutorial-card p { font-size: 13px; color: #a9b1d6; line-height: 1.5; }
+    .console-output { color: #e0af68; }
+    .console-input { color: #7aa2f7; }
+    .console-error { color: #f7768e; }
+    .console-info { color: #a9b1d6; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="header">
+      <div style="display: flex; align-items: center;"><span class="status-dot"></span><h1>ISAIAHS C beta</h1></div>
+      <div>
+        <button class="btn-header" onclick="showTutorials()">📚 LEARN C</button>
+        <button class="btn-header" onclick="downloadC()">💾 DOWNLOAD .C</button>
+        <button class="btn-header" onclick="clearWorkspace()">🗑️ CLEAR WORKSPACE</button>
+        <button class="btn-run" onclick="runCode()">▶ START</button>
+        <button class="btn-clear" onclick="document.getElementById('consolePane').innerHTML = ''">CLEAR CONSOLE</button>
+      </div>
+    </div>
+    <!-- Tutorial Modal -->
+    <div id="tutorialModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Learn C Programming</h2>
+          <span class="modal-close" onclick="closeTutorials()">&times;</span>
+        </div>
+        <div class="tutorial-grid">
+          <div class="tutorial-card" onclick="loadLesson('hello')">
+            <h3>1. Hello World</h3>
+            <p>Learn how to output text to the console using printf.</p>
+          </div>
+          <div class="tutorial-card" onclick="loadLesson('vars')">
+            <h3>2. Variables</h3>
+            <p>Storing values in memory using integer types.</p>
+          </div>
+          <div class="tutorial-card" onclick="loadLesson('math')">
+            <h3>3. Arithmetic</h3>
+            <p>Using C to perform mathematical operations.</p>
+          </div>
+          <div class="tutorial-card" onclick="loadLesson('logic')">
+            <h3>4. Logic Control</h3>
+            <p>Making decisions in code with if/else branches.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-content">
+      <div id="blocklyArea">
+        <div id="blocklyDiv"></div>
+      </div>
+      <div id="codePane">
+        <div class="pane-title">Generated C Source</div>
+        <pre id="codeOutput">// Your C code will appear here...</pre>
+        <div class="pane-title">Terminal Output</div>
+        <div id="consolePane">System ready...<br>Click START to compile.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Define the Toolbox (The sidebar of blocks) -->
+  <xml id="toolbox" style="display: none">
+    <category name="Logic" colour="210">
+      <block type="c_if"></block>
+      <block type="c_if_else"></block>
+      <block type="c_logic_op"></block>
+      <block type="c_bitwise"></block>
+      <block type="c_logic_not"></block>
+      <block type="logic_compare"></block>
+      <block type="c_bool"></block>
+    </category>
+    <category name="Loops" colour="120">
+      <block type="c_while"></block>
+      <block type="c_do_while"></block>
+      <block type="c_for"></block>
+      <block type="c_break"></block>
+      <block type="c_continue"></block>
+    </category>
+    <category name="Structure" colour="230">
+      <block type="c_main"></block>
+      <block type="c_return"></block>
+      <block type="c_switch"></block>
+      <block type="c_case"></block>
+      <block type="c_default"></block>
+    </category>
+    <category name="Functions" colour="260">
+      <block type="c_function_declare"></block>
+      <block type="c_function_param"></block>
+      <block type="c_function_call"></block>
+    </category>
+    <category name="Custom Types" colour="30">
+      <block type="c_struct_define"></block>
+      <block type="c_struct_member_declare"></block>
+      <block type="c_struct_var_declare"></block>
+      <block type="c_struct_member_set"></block>
+      <block type="c_struct_member_get"></block>
+      <block type="c_typedef"></block>
+      <block type="c_enum"></block>
+      <block type="c_enum_member"></block>
+    </category>
+    <category name="Variables" colour="290">
+      <block type="c_var_declare"></block>
+      <block type="c_variable_set"></block>
+      <block type="c_variable_get"></block>
+      <block type="c_inc_dec"></block>
+      <block type="c_malloc"></block>
+      <block type="c_free"></block>
+      <block type="c_compound_assign"></block>
+      <block type="c_sizeof"></block>
+      <block type="c_cast"></block>
+    </category>
+    <category name="Arrays & Pointers" colour="0">
+      <block type="c_array_declare"></block>
+      <block type="c_array_get"></block>
+      <block type="c_array_set"></block>
+      <block type="c_pointer_declare"></block>
+      <block type="c_address_of"></block>
+      <block type="c_dereference"></block>
+    </category>
+    <category name="I/O" colour="160">
+      <block type="c_printf"></block>
+      <block type="c_scanf"></block>
+      <block type="c_getchar"></block>
+      <block type="c_putchar"></block>
+      <block type="c_exit"></block>
+    </category>
+    <category name="Math & Text" colour="65">
+      <block type="math_number"></block>
+      <block type="math_arithmetic"></block>
+      <block type="c_math_1arg"></block>
+      <block type="c_math_pow"></block>
+      <block type="c_rand"></block>
+      <block type="text"></block>
+      <block type="c_char_literal"></block>
+      <block type="c_char_specials"></block>
+    </category>
+    <category name="Preprocessor" colour="330">
+      <block type="c_include"></block>
+      <block type="c_define"></block>
+      <block type="c_const_null"></block>
+      <block type="c_const_pi"></block>
+      <block type="c_comment"></block>
+    </category>
+  </xml>
+
+  <script>
+    // 0. Setup run function
+    function runCode() {
+      const consolePane = document.getElementById('consolePane');      
+      consolePane.innerHTML = "";
+      logToConsole("[system]", "Initializing Isaiah-GCC compiler...", "#7aa2f7");
+      
+      try {
+          // Generate code for display
+          const code = cGenerator.workspaceToCode(workspace); 
+
+          if (!code || code.trim() === "") {
+              logToConsole("[error]", "No code blocks found in workspace.", "#f7768e");
+              return;
+          }
+
+          setTimeout(() => {
+              logToConsole("[build]", "Compiling source files...", "#bb9af7"); 
+              setTimeout(() => {
+                  logToConsole("[success]", "Build successful. Executing binary...", "#9ece6a");
+                  // Start the block-based simulation
+                  simulateExecution(workspace); 
+              }, 600);
+          }, 400);
+      } catch (e) {
+          logToConsole("[critical]", "Compiler Crash: " + e.message, "#f7768e");
+          console.error(e);
+      }
+    }
+
+    function downloadC() {
+      const code = cGenerator.workspaceToCode(workspace);
+      const blob = new Blob([code], {type: 'text/x-csrc'});
+      const elem = window.document.createElement('a');
+      elem.href = window.URL.createObjectURL(blob);
+      elem.download = 'program.c';
+      document.body.appendChild(elem);
+      elem.click();
+      document.body.removeChild(elem);
+    }
+
+    function clearWorkspace() {
+      workspace.clear();
+      workspace.clearUndo();
+    }
+
+    function showTutorials() { document.getElementById('tutorialModal').style.display = 'block'; }
+    function closeTutorials() { document.getElementById('tutorialModal').style.display = 'none'; }
+
+    function loadLesson(id) {
+      workspace.clear();
+      const main = workspace.newBlock('c_main');
+      main.initSvg();
+      main.render();
+
+      if (id === 'hello') {
+        const printf = workspace.newBlock('c_printf');
+        printf.setFieldValue('Hello World!\\n', 'FORMAT');
+        const txt = workspace.newBlock('text');
+        txt.setFieldValue('Hello World!', 'TEXT');
+        printf.getInput('CONTENT').connection.connect(txt.outputConnection);
+        main.getInput('STACK').connection.connect(printf.previousConnection);
+      } else if (id === 'vars') {
+        const decl = workspace.newBlock('c_var_declare');
+        decl.setFieldValue('int', 'TYPE'); decl.setFieldValue('x', 'VAR');
+        const set = workspace.newBlock('c_variable_set');
+        set.setFieldValue('x', 'VAR');
+        const num = workspace.newBlock('math_number'); num.setFieldValue('10', 'NUM');
+        set.getInput('VALUE').connection.connect(num.outputConnection);
+        main.getInput('STACK').connection.connect(decl.previousConnection);
+        decl.nextConnection.connect(set.previousConnection);
+      } else if (id === 'math') {
+        const printf = workspace.newBlock('c_printf');
+        printf.setFieldValue('Sum: %d\\n', 'FORMAT');
+        const math = workspace.newBlock('math_arithmetic');
+        math.setFieldValue('ADD', 'OP');
+        printf.getInput('CONTENT').connection.connect(math.outputConnection);
+        main.getInput('STACK').connection.connect(printf.previousConnection);
+      } else if (id === 'logic') {
+        const ifelse = workspace.newBlock('c_if_else');
+        main.getInput('STACK').connection.connect(ifelse.previousConnection);
+      }
+      closeTutorials();
+    }
+
+    function logToConsole(tag, msg, color) {
+        const cp = document.getElementById('consolePane');
+        if (!cp) return;
+        cp.innerHTML += `<span style="color: ${color}">${tag}</span> ${msg}<br>`;
+        cp.scrollTop = cp.scrollHeight;
+    }
+
+    // Global variable to store simulated variable values
+    let simulatedVariables = {}; // Stores current variable values
+    let simulatedFunctions = {}; // Stores function definitions (params, statements)
+    let simulatedStructs = {}; // Stores struct definitions (member names)
+    let simulatedEnums = {}; // Stores enum definitions (member name -> value)
+
+    function simulateExecution(ws) {
+        simulatedVariables = {}; // Reset variables for each run
+        simulatedFunctions = {}; // Reset functions for each run
+        simulatedStructs = {}; // Reset structs for each run
+        simulatedEnums = {}; // Reset enums for each run
+        let programOutput = [];
+        let mainBlock = ws.getBlocksByType('c_main', true)[0]; // Get the main block
+
+        // Check for blocks outside of main (Errors)
+        const allBlocks = ws.getAllBlocks(false);
+        const orphans = allBlocks.filter(b => b.type !== 'c_main' && b.getParent() === null && !b.isShadow());
+        
+        if (orphans.length > 0) {
+            logToConsole("[error]", "Syntax Error: Floating blocks detected! All logic must be inside the 'main' function.", "#f7768e");
+            return;
+        }
+
+        if (!mainBlock) {
+            logToConsole("[error]", "No 'main' function block found. Please add one to your workspace.", "#f7768e");
+            return;
+        }
+
+        // First pass: Register all function, struct, and enum definitions
+        ws.getBlocksByType('c_function_declare', false).forEach(block => registerFunction(block));
+        ws.getBlocksByType('c_struct_define', false).forEach(block => registerStruct(block));
+        ws.getBlocksByType('c_enum', false).forEach(block => registerEnum(block));
+        ws.getBlocksByType('c_typedef', false).forEach(block => registerTypedef(block)); // Typedefs are mostly for code gen, but can be noted
+
+
+        // Helper to evaluate a value input (e.g., for printf or variable set)
+        function evaluateValue(block, inputName) {
+            const inputBlock = block.getInputTargetBlock(inputName);
+            if (!inputBlock) return null;
+
+            switch (inputBlock.type) {
+                case 'text':
+                    return inputBlock.getFieldValue('TEXT');
+                case 'math_number':
+                    return parseFloat(inputBlock.getFieldValue('NUM'));
+                case 'c_math_1arg':
+                    const val = evaluateValue(inputBlock, 'NUM');
+                    const op1 = inputBlock.getFieldValue('OP');
+                    return Math[op1] ? Math[op1](val) : val;
+                case 'c_math_pow':
+                    return Math.pow(evaluateValue(inputBlock, 'BASE'), evaluateValue(inputBlock, 'EXP'));
+                case 'c_rand':
+                    return Math.floor(Math.random() * 32767);
+                case 'c_bitwise':
+                    const bA = evaluateValue(inputBlock, 'A');
+                    const bB = evaluateValue(inputBlock, 'B');
+                    const bOp = inputBlock.getFieldValue('OP');
+                    if (bOp === 'AND') return bA & bB;
+                    if (bOp === 'OR') return bA | bB;
+                    if (bOp === 'XOR') return bA ^ bB;
+                    return 0;
+                case 'c_bool':
+                    return inputBlock.getFieldValue('VAL') === 'TRUE';
+                case 'c_logic_not':
+                    return !evaluateValue(inputBlock, 'BOOL');
+                case 'c_logic_op':
+                    const lA = evaluateValue(inputBlock, 'A');
+                    const lB = evaluateValue(inputBlock, 'B');
+                    return inputBlock.getFieldValue('OP') === 'AND' ? (lA && lB) : (lA || lB);
+                case 'c_variable_get': // Handle variable get block
+                    const varName = inputBlock.getFieldValue('VAR');
+                    if (simulatedVariables.hasOwnProperty(varName)) {
+                        return simulatedVariables[varName];
+                    } else {
+                        programOutput.push({ type: 'error', msg: `Runtime Error: Variable '${varName}' not declared.` });
+                        return null;
+                    }
+                case 'c_struct_member_get':
+                    const structVarName = inputBlock.getFieldValue('VAR_NAME');
+                    const memberName = inputBlock.getFieldValue('MEMBER_NAME');
+                    if (simulatedVariables.hasOwnProperty(structVarName) && simulatedVariables[structVarName].hasOwnProperty(memberName)) {
+                        return simulatedVariables[structVarName][memberName];
+                    } else {
+                        programOutput.push({ type: 'error', msg: `Runtime Error: Struct member '${structVarName}.${memberName}' not found or struct not declared.` });
+                        return null;
+                    }
+                case 'math_arithmetic':
+                    const op = inputBlock.getFieldValue('OP');
+                    const valA = evaluateValue(inputBlock, 'A');
+                    const valB = evaluateValue(inputBlock, 'B');
+                    if (typeof valA !== 'number' || typeof valB !== 'number') {
+                        programOutput.push({ type: 'error', msg: `Runtime Error: Non-numeric values in arithmetic operation.` });
+                        return NaN;
+                    }
+                    switch (op) {
+                        case 'ADD': return valA + valB;
+                        case 'MINUS': return valA - valB;
+                        case 'MULTIPLY': return valA * valB;
+                        case 'DIVIDE': return valA / valB;
+                    }
+                    return null;
+                case 'logic_compare':
+                    const compOp = inputBlock.getFieldValue('OP');
+                    let compA = evaluateValue(inputBlock, 'A');
+                    let compB = evaluateValue(inputBlock, 'B');
+                    // Basic type coercion for comparison
+                    if (typeof compA === 'string' && typeof compB !== 'string') compB = String(compB);
+                    if (typeof compB === 'string' && typeof compA !== 'string') compA = String(compA);
+
+                    switch (compOp) {
+                        case 'EQ': return compA == compB;
+                        case 'NEQ': return compA != compB;
+                        case 'LT': return compA < compB;
+                        case 'LTE': return compA <= compB;
+                        case 'GT': return compA > compB;
+                        case 'GTE': return compA >= compB;
+                    }
+                    return null;
+                case 'c_function_call':
+                    const funcName = inputBlock.getFieldValue('NAME');
+                    const args = getFunctionArgs(inputBlock, 'ARGS');
+                    if (simulatedFunctions.hasOwnProperty(funcName)) {
+                        return callFunction(funcName, args); // Call the function and return its value
+                    } else {
+                        programOutput.push({ type: 'error', msg: `Runtime Error: Function '${funcName}' not defined.` });
+                        return null;
+                    }
+                default:
+                    // Fallback for other blocks that might output a value
+                    return null;
+            }
+        }
+
+        // Recursive function to execute statements
+        function registerFunction(block) {
+            const funcName = block.getFieldValue('NAME');
+            const returnType = block.getFieldValue('RETURN_TYPE');
+            const paramBlocks = block.getInputTargetBlock('PARAMS');
+            let params = [];
+            let currentParamBlock = paramBlocks;
+            while (currentParamBlock) {
+                params.push({
+                    type: currentParamBlock.getFieldValue('TYPE'),
+                    name: currentParamBlock.getFieldValue('NAME')
+                });
+                currentParamBlock = currentParamBlock.getNextBlock();
+            }
+            simulatedFunctions[funcName] = {
+                returnType: returnType,
+                params: params,
+                statements: block.getInputTargetBlock('STACK')
+            };
+            programOutput.push({ type: 'info', msg: `Registered function: ${funcName}` });
+        }
+
+        function registerStruct(block) {
+            const structName = block.getFieldValue('NAME');
+            const memberBlocks = block.getInputTargetBlock('MEMBERS');
+            let members = {};
+            let currentMemberBlock = memberBlocks;
+            while (currentMemberBlock) {
+                members[currentMemberBlock.getFieldValue('NAME')] = currentMemberBlock.getFieldValue('TYPE');
+                currentMemberBlock = currentMemberBlock.getNextBlock();
+            }
+            simulatedStructs[structName] = members;
+            programOutput.push({ type: 'info', msg: `Registered struct: ${structName}` });
+        }
+
+        function registerEnum(block) {
+            const enumName = block.getFieldValue('NAME');
+            const memberBlocks = block.getInputTargetBlock('MEMBERS');
+            let enumValues = {};
+            let currentValue = 0;
+            let currentMemberBlock = memberBlocks;
+            while (currentMemberBlock) {
+                const memberName = currentMemberBlock.getFieldValue('NAME');
+                const memberValueInput = currentMemberBlock.getInputTargetBlock('VALUE');
+                if (memberValueInput) {
+                    currentValue = evaluateValue(currentMemberBlock, 'VALUE');
+                }
+                enumValues[memberName] = currentValue;
+                currentValue++;
+                currentMemberBlock = currentMemberBlock.getNextBlock();
+            }
+            simulatedEnums[enumName] = enumValues;
+            programOutput.push({ type: 'info', msg: `Registered enum: ${enumName}` });
+        }
+
+        function registerTypedef(block) {
+            // For simulation, typedefs are mostly for type checking, not direct execution
+            // We can store them if needed for more complex type-aware simulation
+            programOutput.push({ type: 'info', msg: `Registered typedef: ${block.getFieldValue('OLD_TYPE')} -> ${block.getFieldValue('NEW_TYPE')}` });
+        }
+
+        function getFunctionArgs(callBlock, inputName) {
+            let args = [];
+            let currentArgBlock = callBlock.getInputTargetBlock(inputName);
+            while (currentArgBlock) {
+                args.push(evaluateValue(currentArgBlock, 'VALUE')); // Assuming args are value inputs
+                currentArgBlock = currentArgBlock.getNextBlock();
+            }
+            return args;
+        }
+
+        function callFunction(funcName, args) {
+            const funcDef = simulatedFunctions[funcName];
+            if (!funcDef) {
+                programOutput.push({ type: 'error', msg: `Runtime Error: Attempted to call undefined function '${funcName}'.` });
+                return null;
+            }
+
+            // Save current scope variables
+            const oldSimulatedVariables = { ...simulatedVariables };
+            simulatedVariables = {}; // New scope for function
+
+            // Assign parameters to new scope variables
+            funcDef.params.forEach((param, index) => {
+                simulatedVariables[param.name] = args[index];
+                programOutput.push({ type: 'info', msg: `Function '${funcName}': Parameter '${param.name}' set to ${args[index]}` });
+            });
+
+            // Execute function statements
+            let returnValue = null; // C functions return 0 by default if void
+            // This is a simplified execution. A real interpreter would handle return statements
+            // by breaking out of the current execution context.
+            executeStatement(funcDef.statements);
+
+            // Restore previous scope variables
+            simulatedVariables = oldSimulatedVariables;
+            return returnValue; // Return value is not fully implemented yet
+        }
+
+        function executeStatement(block) {
+            if (!block) return;
+
+            switch (block.type) {
+                case 'c_var_declare':
+                    const varName = block.getFieldValue('VAR');
+                    const varType = block.getFieldValue('TYPE');
+                    // Initialize based on type (simplified)
+                    simulatedVariables[varName] = (varType === 'int' || varType === 'long' || varType === 'double' || varType === 'float') ? 0 : '';
+                    programOutput.push({ type: 'info', msg: `Declared ${varType} ${varName}` });
+                    break;
+                case 'c_variable_set':
+                    const setVarName = block.getFieldValue('VAR');
+                    const setValue = evaluateValue(block, 'VALUE');
+                    simulatedVariables[setVarName] = setValue;
+                    programOutput.push({ type: 'info', msg: `Set ${setVarName} = ${setValue}` });
+                    break;
+                case 'c_struct_var_declare':
+                    const structVarName = block.getFieldValue('VAR_NAME');
+                    const structType = block.getFieldValue('STRUCT_NAME');
+                    if (simulatedStructs.hasOwnProperty(structType)) {
+                        simulatedVariables[structVarName] = {}; // Initialize as empty object
+                        programOutput.push({ type: 'info', msg: `Declared struct ${structType} variable: ${structVarName}` });
+                    } else {
+                        programOutput.push({ type: 'error', msg: `Runtime Error: Struct type '${structType}' not defined.` });
+                    }
+                    break;
+                case 'c_struct_member_set':
+                    const sVarName = block.getFieldValue('VAR_NAME');
+                    const sMemberName = block.getFieldValue('MEMBER_NAME');
+                    const sValue = evaluateValue(block, 'VALUE');
+                    if (simulatedVariables.hasOwnProperty(sVarName)) simulatedVariables[sVarName][sMemberName] = sValue;
+                    break;
+                case 'c_inc_dec':
+                    const idVar = block.getFieldValue('VAR');
+                    const idOp = block.getFieldValue('OP');
+                    if (simulatedVariables.hasOwnProperty(idVar)) {
+                        simulatedVariables[idVar] += (idOp === 'INC' ? 1 : -1);
+                    }
+                    break;
+                case 'c_return':
+                    programOutput.push({ type: 'info', msg: `Return statement executed.` });
+                    break;
+                case 'c_printf':
+                    const formatString = block.getFieldValue('FORMAT');
+                    const printfArgs = getFunctionArgs(block, 'ARGS'); // Reusing getFunctionArgs for printf
+                    // Simplified printf: just concatenate args for now
+                    programOutput.push({ type: 'output', msg: `printf: ${formatString} -> ${printfArgs.join(', ')}` });
+                    break;
+                case 'c_scanf':
+                    const scanfFormat = block.getFieldValue('FORMAT');
+                    const scanfArgs = getFunctionArgs(block, 'ARGS'); // These should be variable references (pointers)
+                    scanfArgs.forEach((arg, index) => {
+                        // In a real C scanf, arg would be a pointer. Here, we assume it's the variable name.
+                        // This is a simplification for the simulation.
+                        const varToSet = arg; // Assuming arg is the variable name string
+                        const inputVal = prompt(`Program is waiting for input for variable '${varToSet}' (format: ${scanfFormat}):`);
+                        // Attempt to convert input to number if it looks like one, based on format
+                        // Very basic parsing, needs more robust implementation for full C scanf
+                        simulatedVariables[varToSet] = isNaN(Number(inputVal)) ? inputVal : Number(inputVal);
+                        programOutput.push({ type: 'input', msg: `Received input for '${varToSet}': ${inputVal}` });
+                    });
+                    break;
+                case 'c_exit':
+                    programOutput.push({ type: 'error', msg: "Program exited manually." });
+                    return; // Stop execution
+                case 'c_putchar':
+                    const ch = evaluateValue(block, 'CHAR');
+                    programOutput.push({ type: 'output', msg: String(ch).charAt(0) });
+                    break;
+                case 'c_if':
+                    const condition = evaluateValue(block, 'COND');
+                    if (condition) {
+                        executeStatement(block.getInputTargetBlock('STACK')); // Execute 'if' branch
+                    }
+                    break;
+                case 'c_if_else':
+                    if (evaluateValue(block, 'COND')) {
+                        executeStatement(block.getInputTargetBlock('IF_STACK'));
+                    } else {
+                        executeStatement(block.getInputTargetBlock('ELSE_STACK'));
+                    }
+                    break;
+                case 'c_while':
+                    let loopCount = 0; // Prevent infinite loops in simulation
+                    while (evaluateValue(block, 'COND') && loopCount < 1000) {
+                        executeStatement(block.getInputTargetBlock('STACK')); // Execute 'while' branch
+                        loopCount++;
+                    }
+                    if (loopCount >= 1000) programOutput.push({ type: 'error', msg: "Simulated infinite loop detected in 'while' block. Loop terminated." });
+                    break;
+                case 'c_do_while':
+                    let doLoopCount = 0;
+                    do {
+                        executeStatement(block.getInputTargetBlock('STACK'));
+                        doLoopCount++;
+                    } while (evaluateValue(block, 'COND') && doLoopCount < 1000);
+                    break;
+                case 'c_for':
+                    const iterCount = block.getFieldValue('ITER');
+                    for (let i = 0; i < iterCount; i++) {
+                        // For simplicity, 'i' is not a real variable in simulatedVariables here
+                        executeStatement(block.getInputTargetBlock('STACK')); // Execute 'for' branch
+                    }
+                    break;
+                case 'c_comment':
+                    // Comments are ignored during execution simulation
+                    break;
+                case 'c_function_call':
+                    // Function calls that don't return a value or whose return value is ignored
+                    callFunction(block.getFieldValue('NAME'), getFunctionArgs(block, 'ARGS'));
+                    break;
+                // Add other block types as needed
+            }
+
+            // Execute next block in the sequence
+            executeStatement(block.getNextBlock());
+        }
+
+        // Start execution from the first block in the main function's stack
+        executeStatement(mainBlock.getInputTargetBlock('STACK'));
+
+        // Display all collected output
+        setTimeout(() => {
+            if (programOutput.length === 0) {
+                logToConsole("[info]", "Program finished with no explicit output. (exit code 0)", "#565f89");
+            } else {
+                programOutput.forEach(item => {
+                    let color = "#a9b1d6"; // Default info color
+                    if (item.type === 'output') color = "#e0af68";
+                    else if (item.type === 'input') color = "#7aa2f7";
+                    else if (item.type === 'error') color = "#f7768e";
+                    logToConsole(`[${item.type}]`, item.msg, color);
+                });
+                logToConsole("[info]", "Program finished. (exit code 0)", "#565f89");
+            }
+        }, 500); // Small delay to show compilation first
+    }
+
+    // 1. Define the 'main' function block
+    Blockly.Blocks['c_main'] = {
+      init: function() {
+        this.appendDummyInput().appendField("int main(void) {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("return 0; }");
+        this.setColour(230);
+        this.setTooltip("The entry point of your C program.");
+      }
+    };
+
+    // 2. Define the 'printf' block
+    Blockly.Blocks['c_printf'] = {
+      init: function() {
+        this.appendValueInput("CONTENT")
+            .setCheck(null)
+            .appendField("printf(");
+        this.appendDummyInput().appendField(");");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(160);
+      }
+    };
+
+    Blockly.Blocks['c_scanf'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField("scanf(\"").appendField(new Blockly.FieldTextInput("%d"), "FORMAT").appendField("\",");
+        this.appendValueInput("ARGS") // Allow multiple arguments (pointers)
+            .setCheck(null)
+            .setAlign(Blockly.ALIGN_RIGHT);
+        this.appendDummyInput().appendField(");");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(160);
+        this.setTooltip("Reads an integer from the user.");
+      }
+    };
+
+    Blockly.Blocks['c_var_declare'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldDropdown([["int", "int"], ["float", "float"], ["char", "char"], ["double", "double"], ["long", "long"]]), "TYPE") // Added more types
+            .appendField(new Blockly.FieldTextInput("x"), "VAR").appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(290);
+      }
+    };
+
+    Blockly.Blocks['c_variable_set'] = {
+      init: function() {
+        this.appendValueInput("VALUE").setCheck(null).appendField(new Blockly.FieldTextInput("x"), "VAR").appendField("="); // Removed setCheck("Number")
+        this.appendDummyInput().appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(290);
+      }
+    };
+
+    Blockly.Blocks['c_variable_get'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldTextInput("x"), "VAR");
+        this.setOutput(true, null); // Can output any type
+        this.setColour(290);
+        this.setTooltip("Gets the value of a variable.");
+      }
+    };
+
+    Blockly.Blocks['c_if'] = {
+      init: function() {
+        this.appendValueInput("COND").setCheck("Boolean").appendField("if (");
+        this.appendDummyInput().appendField(") {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("}");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(210);
+      }
+    };
+
+    Blockly.Blocks['c_if_else'] = {
+      init: function() {
+        this.appendValueInput("COND").setCheck("Boolean").appendField("if (");
+        this.appendDummyInput().appendField(") {");
+        this.appendStatementInput("IF_STACK").setCheck(null);
+        this.appendDummyInput().appendField("} else {");
+        this.appendStatementInput("ELSE_STACK").setCheck(null);
+        this.appendDummyInput().appendField("}");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(210);
+      }
+    };
+
+    Blockly.Blocks['c_while'] = {
+      init: function() {
+        this.appendValueInput("COND").setCheck("Boolean").appendField("while (");
+        this.appendDummyInput().appendField(") {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("}");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(120);
+      }
+    };
+
+    Blockly.Blocks['c_do_while'] = {
+      init: function() {
+        this.appendDummyInput().appendField("do {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendValueInput("COND").setCheck("Boolean").appendField("} while (");
+        this.appendDummyInput().appendField(");");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(120);
+      }
+    };
+
+    Blockly.Blocks['c_for'] = {
+      init: function() {
+        this.appendDummyInput().appendField("for (int i = 0; i <").appendField(new Blockly.FieldNumber(10), "ITER").appendField("; i++) {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("}");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(120);
+      }
+    };
+
+    Blockly.Blocks['c_comment'] = {
+      init: function() {
+        this.appendDummyInput().appendField("//").appendField(new Blockly.FieldTextInput("comment here..."), "TEXT");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(0);
+      }
+    };
+
+    // --- NEW ADVANCED BLOCKS ---
+    Blockly.Blocks['c_math_1arg'] = {
+      init: function() {
+        this.appendValueInput("NUM").setCheck("Number")
+            .appendField(new Blockly.FieldDropdown([["sqrt", "sqrt"], ["sin", "sin"], ["cos", "cos"], ["tan", "tan"], ["ceil", "ceil"], ["floor", "floor"], ["abs", "abs"]]), "OP")
+            .appendField("(");
+        this.appendDummyInput().appendField(")");
+        this.setOutput(true, "Number");
+        this.setColour(65);
+      }
+    };
+
+    Blockly.Blocks['c_math_pow'] = {
+      init: function() {
+        this.appendValueInput("BASE").setCheck("Number").appendField("pow(");
+        this.appendValueInput("EXP").setCheck("Number").appendField(",");
+        this.appendDummyInput().appendField(")");
+        this.setOutput(true, "Number");
+        this.setColour(65);
+      }
+    };
+
+    Blockly.Blocks['c_logic_op'] = {
+      init: function() {
+        this.appendValueInput("A").setCheck(null);
+        this.appendValueInput("B").setCheck(null).appendField(new Blockly.FieldDropdown([["&&", "AND"], ["||", "OR"]]), "OP");
+        this.setOutput(true, "Boolean");
+        this.setColour(210);
+      }
+    };
+
+    // --- NEW BLOCKS ---
+    Blockly.Blocks['c_function_declare'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldDropdown([["void", "void"], ["int", "int"], ["float", "float"], ["char", "char"], ["double", "double"], ["long", "long"]]), "RETURN_TYPE")
+            .appendField(new Blockly.FieldTextInput("myFunction"), "NAME")
+            .appendField("(");
+        this.appendValueInput("PARAMS")
+            .setCheck("FunctionParam")
+            .setAlign(Blockly.ALIGN_RIGHT);
+        this.appendDummyInput()
+            .appendField(") {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("}");
+        this.setColour(260);
+        this.setTooltip("Define a custom C function.");
+        this.setHelpUrl("");
+      }
+    };
+
+    Blockly.Blocks['c_function_param'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldDropdown([["int", "int"], ["float", "float"], ["char", "char"], ["double", "double"], ["long", "long"]]), "TYPE")
+            .appendField(new Blockly.FieldTextInput("arg"), "NAME");
+        this.setOutput(true, "FunctionParam");
+        this.setColour(260);
+        this.setTooltip("A parameter for a C function.");
+        this.setHelpUrl("");
+      }
+    };
+
+    Blockly.Blocks['c_function_call'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldTextInput("myFunction"), "NAME")
+            .appendField("(");
+        this.appendValueInput("ARGS")
+            .setCheck(null) // Allow any type for arguments
+            .setAlign(Blockly.ALIGN_RIGHT);
+        this.appendDummyInput()
+            .appendField(");");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(260);
+        this.setTooltip("Call a custom C function.");
+        this.setHelpUrl("");
+      }
+    };
+
+    Blockly.Blocks['c_struct_define'] = {
+      init: function() {
+        this.appendDummyInput().appendField("struct").appendField(new Blockly.FieldTextInput("MyStruct"), "NAME").appendField("{");
+        this.appendStatementInput("MEMBERS").setCheck("StructMember");
+        this.appendDummyInput().appendField("};");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(30);
+        this.setTooltip("Define a C structure.");
+      }
+    };
+
+    Blockly.Blocks['c_struct_member_declare'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldDropdown([["int", "int"], ["float", "float"], ["char", "char"], ["double", "double"], ["long", "long"]]), "TYPE")
+            .appendField(new Blockly.FieldTextInput("member"), "NAME").appendField(";");
+        this.setPreviousStatement(true, "StructMember");
+        this.setNextStatement(true, "StructMember");
+        this.setColour(30);
+        this.setTooltip("Declare a member within a structure.");
+      }
+    };
+
+    Blockly.Blocks['c_struct_var_declare'] = {
+      init: function() {
+        this.appendDummyInput().appendField("struct").appendField(new Blockly.FieldTextInput("MyStruct"), "STRUCT_NAME")
+            .appendField(new Blockly.FieldTextInput("myVar"), "VAR_NAME").appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(30);
+        this.setTooltip("Declare a variable of a defined structure type.");
+      }
+    };
+
+    Blockly.Blocks['c_struct_member_set'] = {
+      init: function() {
+        this.appendValueInput("VALUE").setCheck(null)
+            .appendField(new Blockly.FieldTextInput("myVar"), "VAR_NAME")
+            .appendField(".").appendField(new Blockly.FieldTextInput("member"), "MEMBER_NAME")
+            .appendField("=");
+        this.appendDummyInput().appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(30);
+        this.setTooltip("Set the value of a structure member.");
+      }
+    };
+
+    Blockly.Blocks['c_struct_member_get'] = {
+      init: function() {
+        this.appendDummyInput()
+            .appendField(new Blockly.FieldTextInput("myVar"), "VAR_NAME")
+            .appendField(".").appendField(new Blockly.FieldTextInput("member"), "MEMBER_NAME");
+        this.setOutput(true, null);
+        this.setColour(30);
+        this.setTooltip("Get the value of a structure member.");
+      }
+    };
+
+    Blockly.Blocks['c_typedef'] = {
+      init: function() {
+        this.appendDummyInput().appendField("typedef")
+            .appendField(new Blockly.FieldTextInput("int"), "OLD_TYPE")
+            .appendField(new Blockly.FieldTextInput("Integer"), "NEW_TYPE")
+            .appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(30);
+        this.setTooltip("Create a type alias using typedef.");
+      }
+    };
+
+    Blockly.Blocks['c_enum'] = {
+      init: function() {
+        this.appendDummyInput().appendField("enum").appendField(new Blockly.FieldTextInput("Colors"), "NAME").appendField("{");
+        this.appendStatementInput("MEMBERS").setCheck("EnumMember");
+        this.appendDummyInput().appendField("};");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(30);
+        this.setTooltip("Define an enumeration.");
+      }
+    };
+
+    Blockly.Blocks['c_enum_member'] = {
+      init: function() {
+        this.appendDummyInput().appendField(new Blockly.FieldTextInput("RED"), "NAME");
+        this.appendValueInput("VALUE").setCheck("Number").appendField("=").setAlign(Blockly.ALIGN_RIGHT);
+        this.setPreviousStatement(true, "EnumMember");
+        this.setNextStatement(true, "EnumMember");
+        this.setColour(30);
+        this.setTooltip("An enumeration member.");
+      }
+    };
+
+    Blockly.Blocks['c_bitwise'] = {
+      init: function() {
+        this.appendValueInput("A").setCheck("Number");
+        this.appendValueInput("B").setCheck("Number").appendField(new Blockly.FieldDropdown([["&", "AND"], ["|", "OR"], ["^", "XOR"]]), "OP");
+        this.setOutput(true, "Number");
+        this.setColour(210);
+      }
+    };
+
+    Blockly.Blocks['c_logic_not'] = {
+      init: function() {
+        this.appendValueInput("BOOL").setCheck(null).appendField("!");
+        this.setOutput(true, "Boolean");
+        this.setColour(210);
+      }
+    };
+
+    Blockly.Blocks['c_inc_dec'] = {
+      init: function() {
+        this.appendDummyInput().appendField(new Blockly.FieldTextInput("x"), "VAR")
+            .appendField(new Blockly.FieldDropdown([["++", "INC"], ["--", "DEC"]]), "OP").appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(290);
+      }
+    };
+
+    Blockly.Blocks['c_compound_assign'] = {
+      init: function() {
+        this.appendValueInput("VALUE").setCheck("Number").appendField(new Blockly.FieldTextInput("x"), "VAR")
+            .appendField(new Blockly.FieldDropdown([["+=", "ADD"], ["-=", "SUB"], ["*=", "MUL"], ["/=", "DIV"]]), "OP");
+        this.appendDummyInput().appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(290);
+      }
+    };
+
+    Blockly.Blocks['c_array_declare'] = {
+      init: function() {
+        this.appendDummyInput().appendField("int").appendField(new Blockly.FieldTextInput("arr"), "VAR")
+            .appendField("[").appendField(new Blockly.FieldNumber(10), "SIZE").appendField("];");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(0);
+      }
+    };
+
+    Blockly.Blocks['c_array_set'] = {
+      init: function() {
+        this.appendValueInput("INDEX").setCheck("Number").appendField(new Blockly.FieldTextInput("arr"), "VAR").appendField("[");
+        this.appendValueInput("VALUE").setCheck(null).appendField("] =");
+        this.appendDummyInput().appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(0);
+      }
+    };
+
+    Blockly.Blocks['c_array_get'] = {
+      init: function() {
+        this.appendValueInput("INDEX").setCheck("Number").appendField(new Blockly.FieldTextInput("arr"), "VAR").appendField("[");
+        this.appendDummyInput().appendField("]");
+        this.setOutput(true, null);
+        this.setColour(0);
+      }
+    };
+
+    Blockly.Blocks['c_malloc'] = {
+      init: function() {
+        this.appendValueInput("SIZE").setCheck("Number").appendField("malloc(");
+        this.appendDummyInput().appendField(")");
+        this.setOutput(true, null);
+        this.setColour(290);
+      }
+    };
+
+    Blockly.Blocks['c_free'] = {
+      init: function() {
+        this.appendDummyInput().appendField("free(").appendField(new Blockly.FieldTextInput("ptr"), "VAR").appendField(");");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(290);
+      }
+    };
+
+    Blockly.Blocks['c_return'] = {
+      init: function() {
+        this.appendValueInput("VALUE").appendField("return");
+        this.appendDummyInput().appendField(";");
+        this.setPreviousStatement(true, null);
+        this.setColour(230);
+      }
+    };
+
+    Blockly.Blocks['c_switch'] = {
+      init: function() {
+        this.appendValueInput("VAL").appendField("switch (");
+        this.appendDummyInput().appendField(") {");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("}");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(230);
+      }
+    };
+
+    Blockly.Blocks['c_case'] = {
+      init: function() {
+        this.appendDummyInput().appendField("case").appendField(new Blockly.FieldTextInput("0"), "VAL").appendField(":");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.appendDummyInput().appendField("break;");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(230);
+      }
+    };
+
+    Blockly.Blocks['c_default'] = {
+      init: function() {
+        this.appendDummyInput().appendField("default:");
+        this.appendStatementInput("STACK").setCheck(null);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(230);
+      }
+    };
+
+    Blockly.Blocks['c_break'] = {
+      init: function() { this.appendDummyInput().appendField("break;"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(120); }
+    };
+
+    Blockly.Blocks['c_continue'] = {
+      init: function() { this.appendDummyInput().appendField("continue;"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(120); }
+    };
+
+    Blockly.Blocks['c_rand'] = {
+      init: function() {
+        this.appendDummyInput().appendField("rand()");
+        this.setOutput(true, "Number");
+        this.setColour(65);
+      }
+    };
+
+    Blockly.Blocks['c_address_of'] = {
+      init: function() { this.appendDummyInput().appendField("&").appendField(new Blockly.FieldTextInput("x"), "VAR"); this.setOutput(true, null); this.setColour(0); }
+    };
+
+    Blockly.Blocks['c_dereference'] = {
+      init: function() { this.appendDummyInput().appendField("*").appendField(new Blockly.FieldTextInput("ptr"), "VAR"); this.setOutput(true, null); this.setColour(0); }
+    };
+
+    Blockly.Blocks['c_pointer_declare'] = {
+      init: function() { this.appendDummyInput().appendField("int *").appendField(new Blockly.FieldTextInput("ptr"), "VAR").appendField(";"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(0); }
+    };
+
+    Blockly.Blocks['c_include'] = {
+      init: function() { this.appendDummyInput().appendField("#include <").appendField(new Blockly.FieldTextInput("stdio.h"), "FILE").appendField(">"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(330); }
+    };
+
+    Blockly.Blocks['c_define'] = {
+      init: function() { this.appendDummyInput().appendField("#define").appendField(new Blockly.FieldTextInput("MAX"), "NAME").appendField(new Blockly.FieldTextInput("100"), "VAL"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(330); }
+    };
+
+    Blockly.Blocks['c_exit'] = {
+      init: function() { this.appendDummyInput().appendField("exit(").appendField(new Blockly.FieldNumber(0), "CODE").appendField(");"); this.setPreviousStatement(true, null); this.setColour(160); }
+    };
+
+    Blockly.Blocks['c_putchar'] = {
+      init: function() { this.appendValueInput("CHAR").appendField("putchar("); this.appendDummyInput().appendField(");"); this.setPreviousStatement(true, null); this.setNextStatement(true, null); this.setColour(160); }
+    };
+
+    Blockly.Blocks['c_getchar'] = {
+      init: function() { this.appendDummyInput().appendField("getchar()"); this.setOutput(true, null); this.setColour(160); }
+    };
+
+    Blockly.Blocks['c_char_literal'] = {
+      init: function() { this.appendDummyInput().appendField("'").appendField(new Blockly.FieldTextInput("a"), "CHAR").appendField("'"); this.setOutput(true, null); this.setColour(65); }
+    };
+
+    Blockly.Blocks['c_bool'] = {
+      init: function() { this.appendDummyInput().appendField(new Blockly.FieldDropdown([["true", "TRUE"], ["false", "FALSE"]]), "VAL"); this.setOutput(true, "Boolean"); this.setColour(210); }
+    };
+
+    Blockly.Blocks['c_const_null'] = {
+      init: function() { this.appendDummyInput().appendField("NULL"); this.setOutput(true, null); this.setColour(330); }
+    };
+
+    Blockly.Blocks['c_const_pi'] = {
+      init: function() { this.appendDummyInput().appendField("M_PI"); this.setOutput(true, "Number"); this.setColour(330); }
+    };
+
+    Blockly.Blocks['c_char_specials'] = {
+      init: function() { this.appendDummyInput().appendField(new Blockly.FieldDropdown([["\\n (newline)", "\\n"], ["\\t (tab)", "\\t"]]), "VAL"); this.setOutput(true, "String"); this.setColour(65); }
+    };
+
+    Blockly.Blocks['c_cast'] = {
+      init: function() { this.appendValueInput("VAL").appendField("(").appendField(new Blockly.FieldDropdown([["int", "int"], ["float", "float"], ["char", "char"]]), "TYPE").appendField(")"); this.setOutput(true, null); this.setColour(290); }
+    };
+
+    Blockly.Blocks['c_sizeof'] = {
+      init: function() { this.appendDummyInput().appendField("sizeof(").appendField(new Blockly.FieldTextInput("x"), "VAR").appendField(")"); this.setOutput(true, "Number"); this.setColour(290); }
+    };
+
+    // 3. Create the C Code Generator
+    const cGenerator = new Blockly.Generator('C');
+    cGenerator.ORDER_ATOMIC = 0;
+    cGenerator.ORDER_NONE = 99;
+
+    // Generator functions must be in .forBlock for modern Blockly
+    cGenerator.forBlock['c_main'] = function(block) {
+      const branch = cGenerator.statementToCode(block, 'STACK');
+      return `#include <stdio.h>\n\nint main(void) {\n${branch}  return 0;\n}\n`;
+    };
+
+    cGenerator.forBlock['c_math_1arg'] = function(block) {
+      const num = cGenerator.valueToCode(block, 'NUM', 0) || '0';
+      return [`${block.getFieldValue('OP')}(${num})`, 0];
+    };
+
+    cGenerator.forBlock['c_math_pow'] = function(block) {
+      const b = cGenerator.valueToCode(block, 'BASE', 0) || '0';
+      const e = cGenerator.valueToCode(block, 'EXP', 0) || '0';
+      return [`pow(${b}, ${e})`, 0];
+    };
+
+    cGenerator.forBlock['c_logic_op'] = function(block) {
+      const op = block.getFieldValue('OP') === 'AND' ? '&&' : '||';
+      const a = cGenerator.valueToCode(block, 'A', 0) || '0';
+      const b = cGenerator.valueToCode(block, 'B', 0) || '0';
+      return [`${a} ${op} ${b}`, 0];
+    };
+
+    cGenerator.forBlock['c_logic_not'] = function(block) {
+      const b = cGenerator.valueToCode(block, 'BOOL', 0) || '0';
+      return [`!${b}`, 0];
+    };
+
+    cGenerator.forBlock['c_inc_dec'] = function(block) {
+      return `  ${block.getFieldValue('VAR')}${block.getFieldValue('OP') === 'INC' ? '++' : '--'};\n`;
+    };
+
+    cGenerator.forBlock['c_compound_assign'] = function(block) {
+      const ops = { 'ADD': '+=', 'SUB': '-=', 'MUL': '*=', 'DIV': '/=' };
+      const val = cGenerator.valueToCode(block, 'VALUE', 0) || '0';
+      return `  ${block.getFieldValue('VAR')} ${ops[block.getFieldValue('OP')]} ${val};\n`;
+    };
+
+    cGenerator.forBlock['c_array_declare'] = function(block) { return `  int ${block.getFieldValue('VAR')}[${block.getFieldValue('SIZE')}];\n`; };
+    cGenerator.forBlock['c_array_set'] = function(block) {
+      const i = cGenerator.valueToCode(block, 'INDEX', 0) || '0';
+      const v = cGenerator.valueToCode(block, 'VALUE', 0) || '0';
+      return `  ${block.getFieldValue('VAR')}[${i}] = ${v};\n`;
+    };
+    cGenerator.forBlock['c_array_get'] = function(block) { return [`${block.getFieldValue('VAR')}[${cGenerator.valueToCode(block, 'INDEX', 0) || '0'}]`, 0]; };
+    cGenerator.forBlock['c_return'] = function(block) { return `  return ${cGenerator.valueToCode(block, 'VALUE', 0) || '0'};\n`; };
+    cGenerator.forBlock['c_break'] = function() { return '  break;\n'; };
+    cGenerator.forBlock['c_continue'] = function() { return '  continue;\n'; };
+    cGenerator.forBlock['c_switch'] = function(block) { return `  switch (${cGenerator.valueToCode(block, 'VAL', 0) || '0'}) {\n${cGenerator.statementToCode(block, 'STACK')}  }\n`; };
+    cGenerator.forBlock['c_case'] = function(block) { return `    case ${block.getFieldValue('VAL')}:\n${cGenerator.statementToCode(block, 'STACK')}      break;\n`; };
+    cGenerator.forBlock['c_default'] = function(block) { return `    default:\n${cGenerator.statementToCode(block, 'STACK')}`; };
+    cGenerator.forBlock['c_include'] = function(block) { return `#include <${block.getFieldValue('FILE')}>\n`; };
+    cGenerator.forBlock['c_define'] = function(block) { return `#define ${block.getFieldValue('NAME')} ${block.getFieldValue('VAL')}\n`; };
+    cGenerator.forBlock['c_address_of'] = function(block) { return [`&${block.getFieldValue('VAR')}`, 0]; };
+    cGenerator.forBlock['c_dereference'] = function(block) { return [`*${block.getFieldValue('VAR')}`, 0]; };
+    cGenerator.forBlock['c_pointer_declare'] = function(block) { return `  int *${block.getFieldValue('VAR')};\n`; };
+    cGenerator.forBlock['c_exit'] = function(block) { return `  exit(${block.getFieldValue('CODE')});\n`; };
+    cGenerator.forBlock['c_putchar'] = function(block) { return `  putchar(${cGenerator.valueToCode(block, 'CHAR', 0) || "' '"});\n`; };
+    cGenerator.forBlock['c_getchar'] = function() { return ['getchar()', 0]; };
+    cGenerator.forBlock['c_char_literal'] = function(block) { return [`'${block.getFieldValue('CHAR')}'`, 0]; };
+    cGenerator.forBlock['c_bool'] = function(block) { return [block.getFieldValue('VAL').toLowerCase(), 0]; };
+    cGenerator.forBlock['c_const_null'] = function() { return ['NULL', 0]; };
+    cGenerator.forBlock['c_const_pi'] = function() { return ['M_PI', 0]; };
+    cGenerator.forBlock['c_char_specials'] = function(block) { return [`"${block.getFieldValue('VAL')}"`, 0]; };
+    cGenerator.forBlock['c_cast'] = function(block) { return [`(${block.getFieldValue('TYPE')})${cGenerator.valueToCode(block, 'VAL', 0) || '0'}`, 0]; };
+    cGenerator.forBlock['c_sizeof'] = function(block) { return [`sizeof(${block.getFieldValue('VAR')})`, 0]; };
+
+    cGenerator.forBlock['c_printf'] = function(block) {
+      const content = cGenerator.valueToCode(block, 'CONTENT', 0) || '""';
+      return `  printf(${content});\n`;
+    };
+
+    cGenerator.forBlock['c_scanf'] = function(block) {
+      return `  scanf("%d", &${block.getFieldValue('VAR')});\n`;
+    };
+
+    cGenerator.forBlock['c_var_declare'] = function(block) {
+      return `  ${block.getFieldValue('TYPE')} ${block.getFieldValue('VAR')};\n`;
+    };
+
+    cGenerator.forBlock['c_variable_set'] = function(block) {
+      const val = cGenerator.valueToCode(block, 'VALUE', 0) || '0';
+      return `  ${block.getFieldValue('VAR')} = ${val};\n`;
+    };
+
+    cGenerator.forBlock['c_function_declare'] = function(block) {
+      const returnType = block.getFieldValue('RETURN_TYPE');
+      const funcName = block.getFieldValue('NAME');
+      const params = cGenerator.valueToCode(block, 'PARAMS', 0) || 'void';
+      const statements = cGenerator.statementToCode(block, 'STACK');
+      return `${returnType} ${funcName}(${params}) {\n${statements}}\n`;
+    };
+
+    cGenerator.forBlock['c_function_param'] = function(block) {
+      return `${block.getFieldValue('TYPE')} ${block.getFieldValue('NAME')}`;
+    };
+
+    cGenerator.forBlock['c_function_call'] = function(block) {
+      const funcName = block.getFieldValue('NAME');
+      const args = cGenerator.valueToCode(block, 'ARGS', 0) || '';
+      return `  ${funcName}(${args});\n`;
+    };
+
+    cGenerator.forBlock['c_struct_define'] = function(block) {
+      const structName = block.getFieldValue('NAME');
+      const members = cGenerator.statementToCode(block, 'MEMBERS');
+      return `struct ${structName} {\n${members}};\n`;
+    };
+
+    cGenerator.forBlock['c_struct_member_declare'] = function(block) {
+      return `  ${block.getFieldValue('TYPE')} ${block.getFieldValue('NAME')};\n`;
+    };
+
+    cGenerator.forBlock['c_struct_var_declare'] = function(block) {
+      return `  struct ${block.getFieldValue('STRUCT_NAME')} ${block.getFieldValue('VAR_NAME')};\n`;
+    };
+
+    cGenerator.forBlock['c_struct_member_set'] = function(block) {
+      const varName = block.getFieldValue('VAR_NAME');
+      const memberName = block.getFieldValue('MEMBER_NAME');
+      const value = cGenerator.valueToCode(block, 'VALUE', 0) || '0';
+      return `  ${varName}.${memberName} = ${value};\n`;
+    };
+
+    cGenerator.forBlock['c_struct_member_get'] = function(block) {
+      return [`${block.getFieldValue('VAR_NAME')}.${block.getFieldValue('MEMBER_NAME')}`, 0];
+    };
+
+    cGenerator.forBlock['c_typedef'] = function(block) {
+      return `typedef ${block.getFieldValue('OLD_TYPE')} ${block.getFieldValue('NEW_TYPE')};\n`;
+    };
+
+    cGenerator.forBlock['c_enum'] = function(block) {
+      const enumName = block.getFieldValue('NAME');
+      const members = cGenerator.statementToCode(block, 'MEMBERS');
+      return `enum ${enumName} {\n${members}};\n`;
+    };
+
+    cGenerator.forBlock['c_enum_member'] = function(block) {
+      const name = block.getFieldValue('NAME');
+      const value = cGenerator.valueToCode(block, 'VALUE', 0);
+      return `  ${name}${value ? ' = ' + value : ''},\n`;
+    };
+
+    cGenerator.forBlock['c_variable_get'] = function(block) {
+      return [block.getFieldValue('VAR'), 0];
+    };
+
+    cGenerator.forBlock['c_if_else'] = function(block) {
+      const cond = cGenerator.valueToCode(block, 'COND', 0) || 'true';
+      const ifBranch = cGenerator.statementToCode(block, 'IF_STACK');
+      const elseBranch = cGenerator.statementToCode(block, 'ELSE_STACK');
+      return `  if (${cond}) {\n${ifBranch}  } else {\n${elseBranch}  }\n`;
+    };
+
+    cGenerator.forBlock['c_do_while'] = function(block) {
+      const cond = cGenerator.valueToCode(block, 'COND', 0) || 'true';
+      const branch = cGenerator.statementToCode(block, 'STACK');
+      return `  do {\n${branch}  } while (${cond});\n`;
+    };
+
+    cGenerator.forBlock['c_bitwise'] = function(block) {
+      const ops = { 'AND': '&', 'OR': '|', 'XOR': '^' };
+      const a = cGenerator.valueToCode(block, 'A', 0) || '0';
+      const b = cGenerator.valueToCode(block, 'B', 0) || '0';
+      return [`${a} ${ops[block.getFieldValue('OP')]} ${b}`, 0];
+    };
+
+    cGenerator.forBlock['c_malloc'] = function(block) { return [`malloc(${cGenerator.valueToCode(block, 'SIZE', 0) || '0'})`, 0]; };
+    cGenerator.forBlock['c_free'] = function(block) { return `  free(${block.getFieldValue('VAR')});\n`; };
+    cGenerator.forBlock['c_rand'] = function() { return ['rand()', 0]; };
+
+    cGenerator.forBlock['c_if'] = function(block) {
+      const cond = cGenerator.valueToCode(block, 'COND', 0) || 'true';
+      const branch = cGenerator.statementToCode(block, 'STACK');
+      return `  if (${cond}) {\n${branch}  }\n`;
+    };
+
+    cGenerator.forBlock['c_while'] = function(block) {
+      const cond = cGenerator.valueToCode(block, 'COND', 0) || 'true';
+      const branch = cGenerator.statementToCode(block, 'STACK');
+      return `  while (${cond}) {\n${branch}  }\n`;
+    };
+
+    cGenerator.forBlock['c_for'] = function(block) {
+      const iter = block.getFieldValue('ITER');
+      const branch = cGenerator.statementToCode(block, 'STACK');
+      return `  for (int i = 0; i < ${iter}; i++) {\n${branch}  }\n`;
+    };
+
+    cGenerator.forBlock['c_comment'] = function(block) {
+      return `  // ${block.getFieldValue('TEXT')}\n`;
+    };
+
+    // Helper for strings and numbers
+    cGenerator.forBlock['text'] = function(block) { return [`"${block.getFieldValue('TEXT')}"`, 0]; };
+    cGenerator.forBlock['math_number'] = function(block) { return [block.getFieldValue('NUM'), 0]; };
+    cGenerator.forBlock['math_arithmetic'] = function(block) {
+      const operators = { 'ADD': '+', 'MINUS': '-', 'MULTIPLY': '*', 'DIVIDE': '/' };
+      const op = operators[block.getFieldValue('OP')];
+      const arg1 = cGenerator.valueToCode(block, 'A', 0) || '0';
+      const arg2 = cGenerator.valueToCode(block, 'B', 0) || '0';
+      return [`${arg1} ${op} ${arg2}`, 0];
+    };
+    cGenerator.forBlock['logic_compare'] = function(block) {
+      const operators = { 'EQ': '==', 'NEQ': '!=', 'LT': '<', 'LTE': '<=', 'GT': '>', 'GTE': '>=' };
+      const op = operators[block.getFieldValue('OP')];
+      const arg1 = cGenerator.valueToCode(block, 'A', 0) || '0';
+      const arg2 = cGenerator.valueToCode(block, 'B', 0) || '0';
+      return [`${arg1} ${op} ${arg2}`, 0];
+    };
+
+    // Blockly Workspace Scrubber for indenting
+    cGenerator.scrub_ = function(block, code) {
+        const nextBlock = block.getNextBlock();
+        const nextCode = nextBlock ? cGenerator.blockToCode(nextBlock) : '';
+        return code + nextCode;
+    };
+
+    // 4. Inject Blockly into the UI
+    const workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox'),
+      theme: Blockly.Themes.Dark,
+      grid: { spacing: 20, length: 3, colour: '#444', snap: true }
+    });
+    window.addEventListener('resize', () => Blockly.svgResize(workspace), false);
+
+    // 5. Update code output in real-time
+    function updateCode() {
+      const code = cGenerator.workspaceToCode(workspace);
+      document.getElementById('codeOutput').textContent = code;
+    }
+    workspace.addChangeListener(updateCode);
+  </script>
+</body>
+</html>
